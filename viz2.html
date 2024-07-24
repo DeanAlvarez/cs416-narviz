@@ -2,8 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Chart</title>
+    <title>Car MPG Visualization</title>
     <style>
         .mark {
             fill: #13294B;
@@ -12,7 +11,7 @@
             fill: #FF5F05;
         }
         .axis-label {
-            font: 10px sans-serif;
+            font: 18px sans-serif;
         }
         .title {
             font: 20px sans-serif;
@@ -22,9 +21,10 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-<h1>Test</h1>
+    <h1>Examining fuel efficiency in different vehicles</h1>
+    <p>Hover over datapoints for more details. Circle size corresponds with number of cylinders in the engine. Notice any trends? Explore the relationship between cylinders and fuel efficiency by using the slider on the left. Right slider inverts colors. </p>
 <div id="chart"></div>
-<input type="range" id="thresholdSlider" min="2" max="13" step="1" value="2"> <input type="range" id="colorSlider" min="0" max="1" step="0.01" value="0"> <br>
+<input type="range" id="thresholdSlider" min="2" max="13" step="1" value="2"> <input type="range" id="colorSlider" min="0" max="1" step="1" value="0"> <br>
 <div id="thresholdSliderDiv"></div>
 
 <script>
@@ -39,8 +39,8 @@
         const data = await d3.csv('https://flunky.github.io/cars2017.csv');
 
         const margin = {top: 50, right: 50, bottom: 50, left: 50};
-        const width = 600 - margin.left - margin.right;
-        const height = 600 - margin.top - margin.bottom;
+        const width = 800 - margin.left - margin.right;
+        const height = 800 - margin.top - margin.bottom;
         console.log("test");
         const svg = d3.select("#chart")
             .append("svg")
@@ -64,20 +64,34 @@
 
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
-            .attr("class", "x-axis")
             .call(d3.axisBottom(x).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
             .selectAll("text")
             .attr("class", "axis-label");
+
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "end")
+            .attr("x", width)
+            .attr("y", height - 6)
+            .text("Miles per Galon (Highway)");
 
         // Y axis
         const y = d3.scaleLog()
             .domain([10, 150])
             .range([height, 0]);
         svg.append("g")
-            .attr("class", "y-axis")
             .call(d3.axisLeft(y).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
             .selectAll("text")
             .attr("class", "axis-label");
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "end")
+            .attr("y", 6)
+            .attr("dy", ".75em")
+            .attr("transform", "rotate(-90)")
+            .text("Miles per Galon (City)");
+
+
 
         // Marks
         svg.selectAll(".mark")
@@ -107,7 +121,7 @@
             .attr("x", width / 2)
             .attr("y", -10)
             .attr("class", "title")
-            .text("Sample Chart 2");
+            .text("MPG Highway vs City");
 
         d3.selectAll(".mark")
 
@@ -116,21 +130,21 @@
 
         // Update scales
         const newX = d3.scaleLinear()
-            .domain([15, 40]) // Update domain based on filtered data
+            .domain([15, 40])
             .range([0, width]);
 
         const newY = d3.scaleLinear()
-            .domain([5, 40]) // Update domain based on filtered data
+            .domain([5, 40])
             .range([height, 0]);
 
         // Transition X axis
-        svg.select(".x-axis") // Assuming the X axis has a class 'x axis'
+        svg.select(".x-axis")
             .transition()
             .duration(1500)
             .call(d3.axisBottom(newX).tickValues([10, 20, 30, 40, 50]).tickFormat(d3.format("~s")));
 
         // Transition Y axis
-        svg.select(".y-axis") // Assuming the Y axis has a class 'y axis'
+        svg.select(".y-axis")
             .transition()
             .duration(1500)
             .call(d3.axisLeft(newY).tickValues([10, 20, 30, 40, 50]).tickFormat(d3.format("~s")));
@@ -175,14 +189,13 @@
                     .remove())
         );
 
-
         var colorThresh = 2;
         var colorValue = 0
 
 
 
         d3.select("#thresholdSlider").on("input", function() {
-            colorThresh = +this.value; // Get the slider value
+            colorThresh = +this.value;
             circles.filter(d => +d.EngineCylinders >= colorThresh).style("fill", d => colorScale(colorValue));
             circles.filter(d => +d.EngineCylinders < colorThresh).style("fill", d => colorScale(1-colorValue));
             slider_tooltip.transition()
@@ -218,6 +231,6 @@
         
 
 </script>
-<a href="index.html">previous</a> <a href="viz3.html">next</a>
+<h3><a href="index.html">previous</a> <a href="viz3.html">next</a></h3>
 </body>
 </html>

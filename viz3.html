@@ -2,8 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Chart</title>
+    <title>Car MPG Visualization</title>
     <style>
         .mark {
             fill: #13294B;
@@ -12,7 +11,7 @@
             fill: #FF5F05;
         }
         .axis-label {
-            font: 10px sans-serif;
+            font: 18px sans-serif;
         }
         .title {
             font: 20px sans-serif;
@@ -22,19 +21,26 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-<h1>Test</h1>
+    <h1>Examining fuel efficiency in different vehicles</h1>
+    <p>Hover over datapoints for more details. Circle size corresponds with number of cylinders in the engine. Notice any trends? Explore the relationship between cylinders and fuel efficiency by using the slider on the left. Right slider inverts colors. </p>
 <div id="chart"></div>
+<input type="range" id="thresholdSlider" min="2" max="13" step="1" value="2"> <input type="range" id="colorSlider" min="0" max="1" step="1" value="0"> <br>
+<div id="thresholdSliderDiv"></div>
+
 <script>
     function formatData(d) {
         return `Make: ${d.Make}<br>Fuel: ${d.Fuel}<br>Engine Cylinders: ${d.EngineCylinders}<br>Average Highway MPG: ${d.AverageHighwayMPG}<br>Average City MPG: ${d.AverageCityMPG}`;
+    }
+    function formatCylinderData(num) {
+            return `Number of Engine Cylinders is less than: ${num}`;
     }
 
     async function init(){
         const data = await d3.csv('https://flunky.github.io/cars2017.csv');
 
         const margin = {top: 50, right: 50, bottom: 50, left: 50};
-        const width = 600 - margin.left - margin.right;
-        const height = 600 - margin.top - margin.bottom;
+        const width = 800 - margin.left - margin.right;
+        const height = 800 - margin.top - margin.bottom;
         console.log("test");
         const svg = d3.select("#chart")
             .append("svg")
@@ -47,29 +53,49 @@
             .attr("class", "tooltip")
             .style("opacity", 0);
 
+        const slider_tooltip = d3.select("#thresholdSliderDiv")
+            .attr("class", "slider_tooltip")
+            .style("opacity", 0);
+
         // X axis
-        const x = d3.scaleLog()
-            .domain([10, 150])
+        const x = d3.scaleLinear()
+            .domain([15, 40])
             .range([0, width]);
 
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
+            .call(d3.axisBottom(x).tickValues([10, 20, 30, 40, 50]).tickFormat(d3.format("~s")))
             .selectAll("text")
             .attr("class", "axis-label");
 
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "end")
+            .attr("x", width)
+            .attr("y", height - 6)
+            .text("Miles per Galon (Highway)");
+
         // Y axis
-        const y = d3.scaleLog()
-            .domain([10, 150])
+        const y = d3.scaleLinear()
+            .domain([5, 40])
             .range([height, 0]);
         svg.append("g")
-            .call(d3.axisLeft(y).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
+            .call(d3.axisLeft(y).tickValues([10, 20, 30, 40, 50]).tickFormat(d3.format("~s")))
             .selectAll("text")
             .attr("class", "axis-label");
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "end")
+            .attr("y", 6)
+            .attr("dy", ".75em")
+            .attr("transform", "rotate(-90)")
+            .text("Miles per Galon (City)");
+
+        let filteredData = data.filter(d => d.Fuel != "Electricity");
 
         // Marks
         svg.selectAll(".mark")
-            .data(data)
+            .data(filteredData)
             .enter()
             .append("circle")
                 .attr("class", "mark")
@@ -82,7 +108,7 @@
                         .style("opacity", .9);
                     tooltip.html(formatData(d))
                         .style("left", (event.pageX + 5) + "px")
-                        .style("top", (event.pageY - 28) + "px");
+                        .style("top", (event.pageY - 8) + "px");
                 })
                 .on("mouseout", function(d) {
                     tooltip.transition()
@@ -95,16 +121,114 @@
             .attr("x", width / 2)
             .attr("y", -10)
             .attr("class", "title")
-            .text("Sample Chart 3");
+            .text("MPG Highway vs City");
 
         d3.selectAll(".mark")
 
-        }
-        init()
+
+        // Update scales
+        const newX = d3.scaleLog()
+            .domain([10, 150])
+            .range([0, width]);
+
+        const newY = d3.scaleLog()
+            .domain([10, 150])
+            .range([height, 0]);
+
+        // Transition X axis
+        svg.select(".x-axis")
+            .transition()
+            .duration(1500)
+            .call(d3.axisBottom(newX).tickValues([10,20,50,100]).tickFormat(d3.format("~s")));
+
+        // Transition Y axis
+        svg.select(".y-axis")
+            .transition()
+            .duration(1500)
+            .call(d3.axisLeft(newY).tickValues([10,20,50,100]).tickFormat(d3.format("~s")));
+
+
+        const circles = svg.selectAll(".mark")
+        .data(data)
+        .join(
+            enter => enter.append("circle")
+                .attr("class", "mark")
+                .attr("cx", d => newX(d.AverageHighwayMPG))
+                .attr("cy", d => newY(d.AverageCityMPG))
+                .attr("r", d => parseInt(d.EngineCylinders) + 2)
+                .on("mouseover", function(event, d) {
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    tooltip.html(formatData(d))
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 8) + "px");
+                })
+                .on("mouseout", function(d) {
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                })
+                .call(enter => enter.transition()
+                    .duration(1500)
+                    .attr("cx", d => newX(d.AverageHighwayMPG))
+                    .attr("cy", d => newY(d.AverageCityMPG)))
+                    .attr("r", d => parseInt(d.EngineCylinders) + 2),
+            update => update
+                .call(update => update.transition()
+                    .duration(1500)
+                    .attr("cx", d => newX(d.AverageHighwayMPG))
+                    .attr("cy", d => newY(d.AverageCityMPG)))
+                    .attr("r", d => parseInt(d.EngineCylinders) + 2),
+            exit => exit
+                .call(exit => exit.transition()
+                    .duration(1000)
+                    .attr("r", 0)
+                    .remove())
+        );
+
+        var colorThresh = 2;
+        var colorValue = 0
+
+
+
+        d3.select("#thresholdSlider").on("input", function() {
+            colorThresh = +this.value;
+            circles.filter(d => +d.EngineCylinders >= colorThresh).style("fill", d => colorScale(colorValue));
+            circles.filter(d => +d.EngineCylinders < colorThresh).style("fill", d => colorScale(1-colorValue));
+            slider_tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+            slider_tooltip.html(formatCylinderData(colorThresh));
+        });
+
+        d3.select("#thresholdSlider").on("mouseover", function(event, d) {
+                    slider_tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    slider_tooltip.html(formatCylinderData(colorThresh))
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 8) + "px");
+                });
+        d3.select("#thresholdSlider").on("mouseout", function(event, d) {
+                    slider_tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+
+        const colorScale = d3.scaleLinear().domain([0,1]).range(["#13294B", "#FF5F05"]);
+
+        d3.select("#colorSlider").on("input", function() {
+            colorValue = +this.value;
+            circles.filter(d => +d.EngineCylinders >= colorThresh).style("fill", d => colorScale(colorValue));
+            circles.filter(d => +d.EngineCylinders < colorThresh).style("fill", d => colorScale(1-colorValue));
+        });
+
+    }
+    init()
         
 
-
 </script>
-<a href="viz2.html">previous</a>
+<h3><a href="viz2.html">previous</a></h3>
 </body>
 </html>
