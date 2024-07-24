@@ -24,9 +24,15 @@
 <body>
 <h1>Test</h1>
 <div id="chart"></div>
+<input type="range" id="thresholdSlider" min="2" max="13" step="1" value="2"> <input type="range" id="colorSlider" min="0" max="1" step="0.01" value="0"> <br>
+<div id="thresholdSliderDiv"></div>
+
 <script>
     function formatData(d) {
         return `Make: ${d.Make}<br>Fuel: ${d.Fuel}<br>Engine Cylinders: ${d.EngineCylinders}<br>Average Highway MPG: ${d.AverageHighwayMPG}<br>Average City MPG: ${d.AverageCityMPG}`;
+    }
+    function formatCylinderData(num) {
+            return `Number of Engine Cylinders is less than: ${num}`;
     }
 
     async function init(){
@@ -47,6 +53,10 @@
             .attr("class", "tooltip")
             .style("opacity", 0);
 
+        const slider_tooltip = d3.select("#thresholdSliderDiv")
+            .attr("class", "slider_tooltip")
+            .style("opacity", 0);
+
         // X axis
         const x = d3.scaleLog()
             .domain([10, 150])
@@ -54,6 +64,7 @@
 
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
+            .attr("class", "x-axis")
             .call(d3.axisBottom(x).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
             .selectAll("text")
             .attr("class", "axis-label");
@@ -63,6 +74,7 @@
             .domain([10, 150])
             .range([height, 0]);
         svg.append("g")
+            .attr("class", "y-axis")
             .call(d3.axisLeft(y).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
             .selectAll("text")
             .attr("class", "axis-label");
@@ -82,7 +94,7 @@
                         .style("opacity", .9);
                     tooltip.html(formatData(d))
                         .style("left", (event.pageX + 5) + "px")
-                        .style("top", (event.pageY - 28) + "px");
+                        .style("top", (event.pageY - 8) + "px");
                 })
                 .on("mouseout", function(d) {
                     tooltip.transition()
@@ -99,12 +111,113 @@
 
         d3.selectAll(".mark")
 
-        }
-        init()
+
+        let filteredData = data.filter(d => d.Fuel != "Electricity");
+
+        // Update scales
+        const newX = d3.scaleLinear()
+            .domain([15, 40]) // Update domain based on filtered data
+            .range([0, width]);
+
+        const newY = d3.scaleLinear()
+            .domain([5, 40]) // Update domain based on filtered data
+            .range([height, 0]);
+
+        // Transition X axis
+        svg.select(".x-axis") // Assuming the X axis has a class 'x axis'
+            .transition()
+            .duration(1500)
+            .call(d3.axisBottom(newX).tickValues([10, 20, 30, 40, 50]).tickFormat(d3.format("~s")));
+
+        // Transition Y axis
+        svg.select(".y-axis") // Assuming the Y axis has a class 'y axis'
+            .transition()
+            .duration(1500)
+            .call(d3.axisLeft(newY).tickValues([10, 20, 30, 40, 50]).tickFormat(d3.format("~s")));
+
+
+        const circles = svg.selectAll(".mark")
+        .data(filteredData)
+        .join(
+            enter => enter.append("circle")
+                .attr("class", "mark")
+                .attr("cx", d => newX(d.AverageHighwayMPG))
+                .attr("cy", d => newY(d.AverageCityMPG))
+                .attr("r", d => parseInt(d.EngineCylinders) + 2)
+                .on("mouseover", function(event, d) {
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    tooltip.html(formatData(d))
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 8) + "px");
+                })
+                .on("mouseout", function(d) {
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                })
+                .call(enter => enter.transition()
+                    .duration(1500)
+                    .attr("cx", d => newX(d.AverageHighwayMPG))
+                    .attr("cy", d => newY(d.AverageCityMPG)))
+                    .attr("r", d => parseInt(d.EngineCylinders) + 2),
+            update => update
+                .call(update => update.transition()
+                    .duration(1500)
+                    .attr("cx", d => newX(d.AverageHighwayMPG))
+                    .attr("cy", d => newY(d.AverageCityMPG)))
+                    .attr("r", d => parseInt(d.EngineCylinders) + 2),
+            exit => exit
+                .call(exit => exit.transition()
+                    .duration(1000)
+                    .attr("r", 0)
+                    .remove())
+        );
+
+
+        var colorThresh = 2;
+        var colorValue = 0
+
+
+
+        d3.select("#thresholdSlider").on("input", function() {
+            colorThresh = +this.value; // Get the slider value
+            circles.filter(d => +d.EngineCylinders >= colorThresh).style("fill", d => colorScale(colorValue));
+            circles.filter(d => +d.EngineCylinders < colorThresh).style("fill", d => colorScale(1-colorValue));
+            slider_tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+            slider_tooltip.html(formatCylinderData(colorThresh));
+        });
+
+        d3.select("#thresholdSlider").on("mouseover", function(event, d) {
+                    slider_tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    slider_tooltip.html(formatCylinderData(colorThresh))
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 8) + "px");
+                });
+        d3.select("#thresholdSlider").on("mouseout", function(event, d) {
+                    slider_tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+
+        const colorScale = d3.scaleLinear().domain([0,1]).range(["#13294B", "#FF5F05"]);
+
+        d3.select("#colorSlider").on("input", function() {
+            colorValue = +this.value;
+            circles.filter(d => +d.EngineCylinders >= colorThresh).style("fill", d => colorScale(colorValue));
+            circles.filter(d => +d.EngineCylinders < colorThresh).style("fill", d => colorScale(1-colorValue));
+        });
+
+    }
+    init()
         
 
-
 </script>
-<a href="index.html">previous</a><a href="viz3.html">next</a>
+<a href="index.html">previous</a> <a href="viz3.html">next</a>
 </body>
 </html>

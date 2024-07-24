@@ -20,6 +20,7 @@
         }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="d3-annotation.js"></script>
 </head>
 <body>
 <h1>Test</h1>
@@ -98,6 +99,25 @@
             .text("Sample Chart 1");
 
         d3.selectAll(".mark")
+
+        const annotations = [
+            {
+                note: {
+                label: "Important Data",
+                title: "Observation"
+                },
+                type: d3.annotationCalloutCircle,
+                x: x(110),
+                y: y(110),
+                dy: 100,
+                dx: -20,
+                subject: {radius: 50, radiusPadding: 10},
+            }];
+
+        const makeAnnotations = d3.annotation().annotations(annotations);
+
+        // Add the annotations to the SVG
+        svg.append("g").call(makeAnnotations);
 
         }
         init()
