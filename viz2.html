@@ -19,6 +19,7 @@
         }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="d3-annotation.js"></script>
 </head>
 <body>
     <h1>Examining fuel efficiency in different vehicles</h1>
@@ -61,13 +62,12 @@
         const x = d3.scaleLog()
             .domain([10, 150])
             .range([0, width]);
-
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
+            .attr("id", "x-axis")
             .selectAll("text")
             .attr("class", "axis-label");
-
         svg.append("text")
             .attr("class", "axis-label")
             .attr("text-anchor", "end")
@@ -81,6 +81,7 @@
             .range([height, 0]);
         svg.append("g")
             .call(d3.axisLeft(y).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
+            .attr("id", "y-axis")
             .selectAll("text")
             .attr("class", "axis-label");
         svg.append("text")
@@ -91,6 +92,79 @@
             .attr("transform", "rotate(-90)")
             .text("Miles per Galon (City)");
 
+        // Title
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", -10)
+            .attr("class", "title")
+            .text("MPG Highway vs City");
+
+
+        let filteredData = data.filter(d => d.Fuel != "Electricity");
+
+        // Update scales
+        const newX = d3.scaleLinear()
+            .domain([15, 40])
+            .range([0, width]);
+
+        const newY = d3.scaleLinear()
+            .domain([5, 40])
+            .range([height, 0]);
+
+        // Transition X axis
+        svg.select("#x-axis")
+            .transition()
+            .duration(1500)
+            .call(d3.axisBottom(newX).tickValues([10, 20, 30, 40, 50]).tickFormat(d3.format("~s")))
+            .selectAll("text")
+            .attr("class", "axis-label");
+
+        // Transition Y axis
+        svg.select("#y-axis")
+            .transition()
+            .duration(1500)
+            .call(d3.axisLeft(newY).tickValues([10, 20, 30, 40, 50]).tickFormat(d3.format("~s")))
+            .selectAll("text")
+            .attr("class", "axis-label");
+
+
+        const annotations = [
+            {
+                note: {
+                label: "that the circles representing the less efficient cars are bigger than those of the more efficient cars.",
+                title: "You might notice"
+                },
+                type: d3.annotationCalloutCircle,
+                x: x(15),
+                y: y(18),
+                dy: -300,
+                dx: 0,
+                subject: {radius: 100, radiusPadding: 10},
+            },
+            {
+                note: {
+                label: "it seems that the more efficient cars tend to have smaller circles. Use the sliders to explore this relationship.",
+                title: "Likewise,"
+                },
+                type: d3.annotationCalloutCircle,
+                x: x(75),
+                y: y(65),
+                dy: 250,
+                dx: 0,
+                subject: {radius: 210, radiusPadding: 10},
+            }];
+
+        const makeAnnotations = d3.annotation().annotations(annotations);
+
+        
+        const annotationGroup = svg.append("g")
+            .style("opacity", 0)
+            .call(makeAnnotations);
+
+        annotationGroup.transition()
+            .duration(1750)
+            .style("opacity", 1); 
+        
 
 
         // Marks
@@ -115,39 +189,6 @@
                         .duration(500)
                         .style("opacity", 0);
                 });
-
-        // Title
-        svg.append("text")
-            .attr("x", width / 2)
-            .attr("y", -10)
-            .attr("class", "title")
-            .text("MPG Highway vs City");
-
-        d3.selectAll(".mark")
-
-
-        let filteredData = data.filter(d => d.Fuel != "Electricity");
-
-        // Update scales
-        const newX = d3.scaleLinear()
-            .domain([15, 40])
-            .range([0, width]);
-
-        const newY = d3.scaleLinear()
-            .domain([5, 40])
-            .range([height, 0]);
-
-        // Transition X axis
-        svg.select(".x-axis")
-            .transition()
-            .duration(1500)
-            .call(d3.axisBottom(newX).tickValues([10, 20, 30, 40, 50]).tickFormat(d3.format("~s")));
-
-        // Transition Y axis
-        svg.select(".y-axis")
-            .transition()
-            .duration(1500)
-            .call(d3.axisLeft(newY).tickValues([10, 20, 30, 40, 50]).tickFormat(d3.format("~s")));
 
 
         const circles = svg.selectAll(".mark")
@@ -189,8 +230,9 @@
                     .remove())
         );
 
+        
         var colorThresh = 2;
-        var colorValue = 0
+        var colorValue = 0;
 
 
 
@@ -202,7 +244,7 @@
                         .duration(200)
                         .style("opacity", .9);
             slider_tooltip.html(formatCylinderData(colorThresh));
-        });
+            });
 
         d3.select("#thresholdSlider").on("mouseover", function(event, d) {
                     slider_tooltip.transition()
@@ -211,12 +253,12 @@
                     slider_tooltip.html(formatCylinderData(colorThresh))
                         .style("left", (event.pageX + 5) + "px")
                         .style("top", (event.pageY - 8) + "px");
-                });
+            });
         d3.select("#thresholdSlider").on("mouseout", function(event, d) {
                     slider_tooltip.transition()
                         .duration(500)
                         .style("opacity", 0);
-                });
+            });
 
         const colorScale = d3.scaleLinear().domain([0,1]).range(["#13294B", "#FF5F05"]);
 
@@ -224,13 +266,13 @@
             colorValue = +this.value;
             circles.filter(d => +d.EngineCylinders >= colorThresh).style("fill", d => colorScale(colorValue));
             circles.filter(d => +d.EngineCylinders < colorThresh).style("fill", d => colorScale(1-colorValue));
-        });
+            });
 
     }
-    init()
+    init();
         
 
 </script>
-<h3><a href="index.html">previous</a> <a href="viz3.html">next</a></h3>
+<h3><a href="index.html">restart</a> <a href="viz3.html">next</a></h3>
 </body>
 </html>

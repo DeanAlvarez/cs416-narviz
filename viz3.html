@@ -22,7 +22,7 @@
 </head>
 <body>
     <h1>Examining fuel efficiency in different vehicles</h1>
-    <p>Hover over datapoints for more details. Circle size corresponds with number of cylinders in the engine. Notice any trends? Explore the relationship between cylinders and fuel efficiency by using the slider on the left. Right slider inverts colors. </p>
+    <p>Hover over datapoints for more details. Circle size corresponds with number of cylinders in the engine. Use this page to explore which manufacturers are making which cars!</p>
 <div id="chart"></div>
 <label for="cars">Select a manufacturer:</label>
 <select name="cars" id="carSelect">
@@ -140,8 +140,10 @@
 
         let filteredData = data.filter(d => d.Fuel != "Electricity");
 
+        
+
         // Marks
-        svg.selectAll(".mark")
+        const circles = svg.selectAll(".mark")
             .data(filteredData)
             .enter()
             .append("circle")
@@ -173,67 +175,6 @@
         d3.selectAll(".mark")
 
 
-        // Update scales
-        const newX = d3.scaleLog()
-            .domain([10, 150])
-            .range([0, width]);
-
-        const newY = d3.scaleLog()
-            .domain([10, 150])
-            .range([height, 0]);
-
-        // Transition X axis
-        svg.select(".x-axis")
-            .transition()
-            .duration(1500)
-            .call(d3.axisBottom(newX).tickValues([10,20,50,100]).tickFormat(d3.format("~s")));
-
-        // Transition Y axis
-        svg.select(".y-axis")
-            .transition()
-            .duration(1500)
-            .call(d3.axisLeft(newY).tickValues([10,20,50,100]).tickFormat(d3.format("~s")));
-
-
-        const circles = svg.selectAll(".mark")
-        .data(data)
-        .join(
-            enter => enter.append("circle")
-                .attr("class", "mark")
-                .attr("cx", d => newX(d.AverageHighwayMPG))
-                .attr("cy", d => newY(d.AverageCityMPG))
-                .attr("r", d => parseInt(d.EngineCylinders) + 2)
-                .on("mouseover", function(event, d) {
-                    tooltip.transition()
-                        .duration(200)
-                        .style("opacity", .9);
-                    tooltip.html(formatData(d))
-                        .style("left", (event.pageX + 5) + "px")
-                        .style("top", (event.pageY - 8) + "px");
-                })
-                .on("mouseout", function(d) {
-                    tooltip.transition()
-                        .duration(500)
-                        .style("opacity", 0);
-                })
-                .call(enter => enter.transition()
-                    .duration(1500)
-                    .attr("cx", d => newX(d.AverageHighwayMPG))
-                    .attr("cy", d => newY(d.AverageCityMPG)))
-                    .attr("r", d => parseInt(d.EngineCylinders) + 2),
-            update => update
-                .call(update => update.transition()
-                    .duration(1500)
-                    .attr("cx", d => newX(d.AverageHighwayMPG))
-                    .attr("cy", d => newY(d.AverageCityMPG)))
-                    .attr("r", d => parseInt(d.EngineCylinders) + 2),
-            exit => exit
-                .call(exit => exit.transition()
-                    .duration(1000)
-                    .attr("r", 0)
-                    .remove())
-        );
-
         var colorThresh = 2;
         var colorValue = 0
         var manfact = "All"
@@ -249,7 +190,6 @@
 
         d3.select("#thresholdSlider").on("input", function() {
             colorThresh = +this.value;
-            manfact = d3.select("#carSelect").node().value;
             console.log(manfact)
             circles.filter(d => manufacturerFilter(d)).filter(d => +d.EngineCylinders >= colorThresh).style("fill", d => colorScale(colorValue));
             circles.filter(d => manufacturerFilter(d)).filter(d => +d.EngineCylinders < colorThresh).style("fill", d => colorScale(1-colorValue));
@@ -257,6 +197,12 @@
                         .duration(200)
                         .style("opacity", .9);
             slider_tooltip.html(formatCylinderData(colorThresh));
+        });
+
+        d3.select("#carSelect").on("change", function() {
+            manfact = this.value;
+            circles.filter(d => manufacturerFilter(d)).filter(d => +d.EngineCylinders >= colorThresh).style("fill", d => colorScale(colorValue));
+            circles.filter(d => manufacturerFilter(d)).filter(d => +d.EngineCylinders < colorThresh).style("fill", d => colorScale(1-colorValue));
         });
 
         d3.select("#thresholdSlider").on("mouseover", function(event, d) {
@@ -287,6 +233,6 @@
         
 
 </script>
-<h3><a href="viz2.html">previous</a></h3>
+<h3><a href="index.html">restart</a></h3>
 </body>
 </html>
