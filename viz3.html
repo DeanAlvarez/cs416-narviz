@@ -19,6 +19,7 @@
         }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="d3-annotation.js"></script>
 </head>
 <body>
     <h1>Examining fuel efficiency in different vehicles</h1>
@@ -140,6 +141,24 @@
 
         let filteredData = data.filter(d => d.Fuel != "Electricity");
 
+        const annotations = [
+            {
+                note: {
+                label: "that the least efficient cars are made by sports car manufacturers. This is likely unsuprising. Use the dropdown to further explore the efficiency of various brands. What does this tell you about what types of cars are most and least efficient?",
+                title: "You might notice"
+                },
+                type: d3.annotationCalloutCircle,
+                x: x(16.5),
+                y: y(11),
+                dy: -150,
+                dx: 0,
+                subject: {radius: 35, radiusPadding: 10},
+            }];
+
+        const makeAnnotations = d3.annotation().annotations(annotations);
+
+        
+        const annotationGroup = svg.append("g").call(makeAnnotations);
         
 
         // Marks
